@@ -1,16 +1,69 @@
 <head>
-    <style> 
+    <style>
         body, canvas { width: 100%; height: 100%; margin: 0px; }
     </style>
     <script src="https://enki.ws/pim-min.js"></script>
 </head>
 <body>
-    <CANVAS id="pim">Canvas support required</CANVAS>
-    <script>
-        const myDir = new pimDirector().autoload("pim","scene.lws");
-        // const cam = dir.scene.cameras[0];
-        // console.log(dir.scene);
-        // cam.inst.position = [0,0,-5];
-        // cam.inst.rotation = [Math.PI/2, 0,0];
-    </script>
+  <CANVAS id="pim">Canvas support required</CANVAS>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.7/dat.gui.min.js" integrity="sha512-LF8ZB1iTwi4Qvkm4pekHG4a437Y9Af5ZuwbnW4GTbAWQeR2E4KW8WF+xH8b9psevV7wIlDMx1MH9YfPqgKhA/Q==" crossorigin="anonymous"></script>
+  <script>
+    const gui = new dat.GUI({name: 'My GUI'});
+
+    const objProps = {
+      specular: 1,
+      glossiness: 0.7, 
+    };
+
+    const objControls = gui.addFolder('Object');
+    const camControls = gui.addFolder('Camera');
+    objControls.open();
+    camControls.open();
+    
+    const myDir = new pimDirector().autoload('pim', 'scene.lws', null, () => {
+      // Set the viewport to the camera view
+      myDir.scene.viewport = 0;
+
+      pimOptions.defines = `#define JIMMYRIG\n#define PIM_GAMMA\n#define PIM_SOFT_SHADOWS\n#define PIM_PBR_METALNESS 1`;
+
+      const {PI,E,cos,sin,round,random} = Math;
+
+      // Grab the camera and set it to something
+      const cam = myDir.scene.cameras[0];
+      cam.inst.rotation = [0,0,0];
+      cam.inst.translate(0,0,-2);
+      const zoomControl = camControls.add({ zoom: 34 }, 'zoom', 10, 100, 1);
+      zoomControl.onChange((v) => cam.vFov = v);
+
+      // Turn the object around
+      const guy = myDir.scene.byName('mann.obj');
+      guy.obj.loaded = false;
+      guy.inst.selected = 0;
+      guy.inst.rotation = [PI,0,0];
+      guy.inst.position = [1,0,0];
+
+      // Set some of the material properties
+      guy.obj.surfaces.forEach(s=>{
+        s.diffuse    = 0.5;
+        s.specular   = objProps.specular;
+        s.glossiness = objProps.glossiness;
+        s.color      = [1,1,1];
+      });
+
+      // Add controls
+      for (const k in objProps) {
+        const control = objControls.add({ [k]: objProps[k] }, k, 0, 1, 0.1);
+        control.onChange((v) => {
+          const mann = myDir.scene.byName('mann.obj');
+          mann.obj.surfaces.forEach(s=> s[k] = v);
+          mann.obj.loaded = 0;
+        });
+      }
+
+      // Setup a simple camera-rig
+      // const camrig = myDir.scene.addObject(null, new pimInstance('camera_rig'));
+      // cam.inst.parent = camrig.inst;
+
+    });
+  </script>
 </body>
